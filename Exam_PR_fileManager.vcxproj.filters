@@ -29,5 +29,8 @@
     <ClInclude Include="Console_color.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="File_Manager.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -10,14 +10,19 @@ class Menu
 public:
 	Menu(const vector<string>& menu_options) : options(menu_options), current_option(0) {}
 
-	void display();
+    void display();
     void update_options();
-    void load_options(const std::vector<std::string>& menu_options);
+    void load_options(const string& directory);
     int get_choice();
-    string get_current_path() const;
-    void add_to_path(const std::string& folder_name);
+    void add_to_path(const string& folder_name);
     void remove_from_path();
+    string get_current_path() const;
+    const vector<string>& get_options() const;
 };
+
+const vector<string>& Menu::get_options() const {
+    return options;
+}
 
 void Menu::display()
 {
@@ -29,21 +34,28 @@ void Menu::display()
         else {
            text_color(7); // Установить цвет обычного текста
         }
-        std::cout << options[i] << '\n';
+        cout << options[i] << '\n';
     }// Отобразить кнопку создания папки/файла
     text_color(7); // Установить цвет обычного текста
     cout << "Create Folder/File" << '\n';
 
 }
 
-void Menu::load_options(const std::vector<std::string>& menu_options) {
-    options = menu_options;
+
+void Menu::load_options(const string& directory) {
+    options.clear();
+    path.clear();
+    for (const auto& entry : filesystem::directory_iterator(directory)) {
+        options.push_back(entry.path().filename().string());
+    }
     current_option = 0;
 }
+
 
 void Menu::update_options() {
     current_option = 0;
 }
+
 
 int Menu::get_choice() {
     int choice = 0;
@@ -66,7 +78,8 @@ int Menu::get_choice() {
     return choice;
 }
 
-void Menu::add_to_path(const std::string& folder_name) {
+
+void Menu::add_to_path(const string& folder_name) {
     path.push_back(folder_name);
 }
 
@@ -75,7 +88,7 @@ void Menu::remove_from_path() {
 }
 
 string Menu::get_current_path() const {
-    std::string current_path = "";
+    string current_path = "";
     for (const auto& folder : path) {
         current_path += folder + "/";
     }
