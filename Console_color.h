@@ -10,7 +10,7 @@ enum Color
 void text_color(int text, int background = Black)
 {
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), (WORD)((background << 4) | text));
-}
+	}
 
 void gotoxy(int x, int y)
 {
