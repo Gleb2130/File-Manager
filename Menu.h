@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include "Console_color.h"
-
 class Menu
 {
 	vector<string> options;
@@ -39,7 +37,9 @@ void Menu::display()
     }// Отобразить кнопку создания папки/файла
     text_color(7); // Установить цвет обычного текста
 
-    cout << "\x1b[s\x1b[1;80H";
+    cout << "\x1b[s\x1b[1;80H<-Q\x1b[u";
+
+    cout << "\x1b[s\x1b[2;80H";
 
     if (current_option == -1 || current_option == -2) {
         text_color(Green);
@@ -94,6 +94,10 @@ int Menu::get_choice() {
             }
             else if (key == 'F' || key == 'f') { // Создание папки
                 current_option = -2;
+            }
+            else if (key == 'Q' || key == 'q') {//откат на шаг назад
+                choice = current_option = -3;
+                break;
             }
             display();
         }
