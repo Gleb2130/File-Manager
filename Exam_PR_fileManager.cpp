@@ -13,7 +13,7 @@ using namespace std;
 #include "File_Manager.h"
 
 int main()
-{
+    {
     string startDirectory = "C:\\";
 
     // Создание экземпляра менеджера файлов

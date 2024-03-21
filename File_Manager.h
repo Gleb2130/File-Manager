@@ -6,13 +6,16 @@ private:
     Menu menu;
     string current_directory;
     size_t file_copy_number(const string& folder_path, const string& file_folder_name) {
-        size_t counter = 1;
+        size_t counter = 0;
         for (const auto& entry : filesystem::directory_iterator(folder_path)) {
-            if(entry.path().filename().string() == file_folder_name)
+            const auto f_name = entry.path().filename().string();
+            if (filesystem::is_regular_file(entry.path()) && entry.path().filename().string().find(file_folder_name) != std::string::npos) {
                 counter++;
+            }
         }
         return counter;
     }
+
 public:
     File_Manager(const string& start_directory) : menu({}), current_directory(start_directory) { filesystem::current_path(current_directory); }
 
@@ -29,14 +32,39 @@ public:
     void open_folder(const string&);
     void delete_folder(const string&);
 
-    void copyFile(const string&,const string&);
+    void copyFile(const string&);
     void copyFolder(const string&);
+    size_t file_folder_size(const filesystem::path&) const;
 };
 
 
-void File_Manager::copyFile(const string& source_file_path,const string& file_name) {
-    const char copy_text = file_copy_number(source_file_path, file_name);
-    std::filesystem::copy_file(source_file_path + '\\' + file_name, source_file_path + "\\(copy - " + copy_text+')' + file_name);
+void File_Manager::copyFile(const string& source_file_path) {
+    const string source_path = source_file_path.substr(0, source_file_path.find_last_of("\\"));
+    const string file_name = source_file_path.substr(source_file_path.find_last_of("\\") + 1);
+    const size_t copy_number = file_copy_number(source_path, file_name);
+    const string copy_path = source_path + "\\(copy - " + to_string(copy_number) + ")" + file_name ;
+    std::filesystem::copy_file(source_file_path, copy_path);
+}
+
+void File_Manager::copyFolder(const string& source_folder_path) {
+    const string source_path = source_folder_path.substr(0, source_folder_path.find_last_of("\\"));
+    const string folder_name = source_folder_path.substr(source_folder_path.find_last_of("\\") + 1);
+    const size_t copy_number = file_copy_number(source_path, folder_name);
+    const string copy_path = source_path + "\\(copy - " + to_string(copy_number) + ")" + folder_name;
+    std::filesystem::copy(source_folder_path, copy_path, std::filesystem::copy_options::recursive);
+}
+
+size_t File_Manager::file_folder_size(const filesystem::path& path) const {
+    if (filesystem::is_directory(path)) {
+        size_t size_of = 0;
+        for (const auto& obj : filesystem::recursive_directory_iterator(path)) {
+            size_of += file_folder_size(obj.path());
+        }
+        return size_of;
+    }
+    else {
+        return filesystem::file_size(path);
+    }
 }
 
 //const auto& entry : fs::recursive_directory_iterator(directoryPath)
@@ -62,10 +90,10 @@ void File_Manager::delete_file(const string& file_path) {
     }
 }
 
-inline void File_Manager::rename_file_folder(const string& old_name_path, const string& new_name)
+inline void File_Manager::rename_file_folder(const string& old_name_path, const string& new_path)
 {
     try {
-        filesystem::rename(old_name_path, current_directory +"\\"+ new_name);
+        filesystem::rename(old_name_path, new_path);
         cout << "File renaming successfully.\n";
     }
     catch (filesystem::filesystem_error& error)
@@ -128,19 +156,19 @@ bool File_Manager::show_menu() {
         string selected_item_path = current_directory + "\\" + selected_option;
 
         // Пользователь выбрал папку
-        cout << "Selected folder: " << selected_option << endl;
-        cout << "Press Enter to view options..." << endl;
-
-        // Ожидаем нажатия Enter
-        while (_getch() != 13);
+        cout << "Selected folder: " << selected_option << '\n';
+        cout << "Press Enter to view options..." << '\n';   
 
         // Отображаем подменю для папки
         system("cls");
-        cout << "Options for " << selected_option << ":" << endl;
-        cout << "-> 1. Open" << endl;
-        cout << "2. Rename" << endl;
-        cout << "3. Delete" << endl;
-        cout << "Press Q to return to main menu" << endl;
+        cout << "Options for " << selected_option << ":" << '\n';
+        cout << "-> 1. Open" << '\n';
+        cout << "2. Rename" << '\n';
+        cout << "3. Delete" << '\n';
+        cout << "4. Copy" << '\n';
+        cout << "5. Move to" << '\n';
+        cout << "6. Size" << '\n';
+        cout << "Press Q to return to main menu" << '\n';
 
         char option = '1';
         char key;
@@ -149,7 +177,7 @@ bool File_Manager::show_menu() {
             if (key == 72 && option > '1') {
                 --option;
             }
-            else if (key == 80 && option < '3') {
+            else if (key == 80 && option < '6') {
                 ++option;
             }
             else if (key == 'Q' || key == 'q') {
@@ -157,27 +185,49 @@ bool File_Manager::show_menu() {
             }
 
             system("cls");
-            cout << "Options for " << selected_option << ":" << endl;
-            cout << (option == '1' ? "-> " : "   ") << "1. Open" << endl;
-            cout << (option == '2' ? "-> " : "   ") << "2. Rename" << endl;
-            cout << (option == '3' ? "-> " : "   ") << "3. Delete" << endl;
-            cout << "Press Q to return to main menu" << endl;
+            cout << "Options for " << selected_option << ":" << '\n';
+            cout << (option == '1' ? "-> " : "   ") << "1. Open" << '\n';
+            cout << (option == '2' ? "-> " : "   ") << "2. Rename" << '\n';
+            cout << (option == '3' ? "-> " : "   ") << "3. Delete" << '\n';
+            cout << (option == '4' ? "-> " : "   ") << "4. Copy" << '\n';
+            cout << (option == '5' ? "-> " : "   ") << "5. Move to" << '\n';
+            cout << (option == '6' ? "-> " : "   ") << "6. Size" << '\n';
+
+
+            cout << "Press Q to return to main menu" << '\n';
         } while (key != 13);
 
         // Обработка выбора пользователя
-        switch (option) {
+        switch (option) { 
         case '1':
             filesystem::is_directory(selected_item_path) ? navigate_down(selected_item_path) : open_file(selected_item_path);
             break;
         case '2': {
             string newName;
+            const string source_path = selected_item_path.substr(0, selected_item_path.find_last_of("\\"));
             cout << "Enter new name: ";
             cin >> newName;
-            rename_file_folder(selected_item_path, newName);
+            rename_file_folder(selected_item_path, source_path + newName);
             break;
         }
         case '3':
             filesystem::is_directory(selected_item_path) ? delete_folder(selected_item_path) : delete_file(selected_item_path);
+            break;
+        case '4':
+            filesystem::is_directory(selected_item_path) ? copyFolder(selected_item_path) : copyFile(selected_item_path);
+            break;
+        case '5': {
+            string new_FF_path;
+            cout << "Enter new path: ";
+            cin >> new_FF_path;
+            rename_file_folder(selected_item_path, new_FF_path + selected_item_path.substr(selected_item_path.find_last_of("\\") + 1, selected_item_path.length() - 1));
+            break;
+        }
+        case '6':
+            size_t FF_size;
+            FF_size=file_folder_size(selected_item_path);
+            cout << selected_item_path.substr(selected_item_path.find_last_of("\\") + 1, selected_item_path.length() - 1) << " : " << FF_size << '\n';
+            while (_getch() != 13);
             break;
         default:
             cout << "Invalid option!\n";
