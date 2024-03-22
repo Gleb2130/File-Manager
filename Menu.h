@@ -1,18 +1,22 @@
 ﻿#pragma once
 
-class Menu
-{
-	vector<string> options;
-	vector<string> path;
-	int current_option;
+class Menu {
+    vector<string> options;
+    vector<string> path;
+    int current_option;
 public:
     Menu() : current_option(0) {}
-	Menu(const vector<string>& menu_options) : options(menu_options), current_option(0) {}
+    Menu(const vector<string>& menu_options) : options(menu_options), current_option(0) {}
 
     void display();
     void load_options(const string& directory);
     int get_choice();
     const vector<string>& get_options() const;
+    void set_options(const vector<string>& new_options,int current_option = 0) {
+        options = new_options;
+        this->current_option = current_option;
+    }
+
 };
 
 const vector<string>& Menu::get_options() const {
@@ -35,19 +39,27 @@ void Menu::display()
             cout << options[i] << '\n';
         }
     }// Отобразить кнопку создания папки/файла
-    text_color(7); // Установить цвет обычного текста
+    text_color(); // Установить цвет обычного текста
 
     cout << "\x1b[s\x1b[1;80H<-Q\x1b[u";
 
-    cout << "\x1b[s\x1b[2;80H";
+    cout << "\x1b[s\x1b[2;80HSearch: ";
+    if (current_option == -4){
+        text_color(Blue);
+        cout << "Press enter";
+        text_color();
+    }
+    cout<<"\x1b[u";
+
+    cout << "\x1b[s\x1b[3;80H";
 
     if (current_option == -1 || current_option == -2) {
         text_color(Green);
     }
      cout << "Create:";
      switch (current_option) {
-        case -2: text_color(7); cout << "D->Folder "; text_color(Blue); cout << "F->File"; text_color(7); break;
-        case -1:  text_color(Blue); cout << "D->Folder "; text_color(7); cout << "F->File"; break;
+        case -2: text_color();; cout << "D->Folder "; text_color(Blue); cout << "F->File"; text_color();; break;
+        case -1:  text_color(Blue); cout << "D->Folder "; text_color();; cout << "F->File"; break;
         default:cout << "D->Folder F->File";
      }
     cout<< "\x1b[u";
@@ -98,6 +110,9 @@ int Menu::get_choice() {
             else if (key == 'Q' || key == 'q') {//откат на шаг назад
                 choice = current_option = -3;
                 break;
+            }
+            else if (key == 'S' || key == 's') {//поиск
+                current_option = -4;
             }
             display();
         }

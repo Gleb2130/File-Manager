@@ -1,5 +1,10 @@
 ﻿#pragma once
 
+float fPre(float a, int n)
+{
+    return int(a * pow(10.0, n)) / pow(10.0, n);
+}
+
 class File_Manager
 {
 private:
@@ -9,17 +14,37 @@ private:
         size_t counter = 0;
         for (const auto& entry : filesystem::directory_iterator(folder_path)) {
             const auto f_name = entry.path().filename().string();
-            if (filesystem::is_regular_file(entry.path()) && entry.path().filename().string().find(file_folder_name) != std::string::npos) {
+            if (filesystem::is_regular_file(entry.path()) && entry.path().filename().string().find(file_folder_name) != string::npos) {
                 counter++;
             }
         }
         return counter;
     }
+    string convertFileSize(float fileSize) {
+        const int KB = 1024;
+        const int MB = KB * KB;
+        const int GB = MB * KB;
+
+        string result;
+        if (fileSize >= GB) {
+            result = to_string(fPre(fileSize / GB ,2)) + " GB";
+        }
+        else if (fileSize >= MB) {
+            result = to_string(fPre(fileSize / MB ,2)) + " MB";
+        }
+        else if (fileSize >= KB) {
+            result = to_string(fPre(fileSize / KB ,2)) + " KB";
+        }
+        else {
+            result = to_string(fileSize) + " bytes";
+        }
+        return result;
+    }
 
 public:
     File_Manager(const string& start_directory) : menu({}), current_directory(start_directory) { filesystem::current_path(current_directory); }
 
-    bool show_menu();
+    bool show_menu(bool);
     void open_file(const string&);
     void delete_file(const string&);
     void rename_file_folder(const string&, const string&);
@@ -35,7 +60,23 @@ public:
     void copyFile(const string&);
     void copyFolder(const string&);
     size_t file_folder_size(const filesystem::path&) const;
+    vector<string> findFilesByMask(const filesystem::path&, const string&);
 };
+
+vector<string> File_Manager::findFilesByMask(const filesystem::path& directory, const string& mask) {
+    vector<string> foundFiles;
+    for (const auto& entry : filesystem::recursive_directory_iterator(directory)) {
+        if (filesystem::is_directory(entry.path())) {
+            vector<string> find_in_folder = findFilesByMask(entry.path(), mask);
+            foundFiles.insert(foundFiles.end(), find_in_folder.begin(), find_in_folder.end());
+        }
+        else if (filesystem::is_regular_file(entry.path()) && entry.path().filename().string().find(mask) != string::npos) {
+            foundFiles.emplace_back(entry.path().string());
+        }
+    }
+    return foundFiles;
+}
+
 
 
 void File_Manager::copyFile(const string& source_file_path) {
@@ -43,7 +84,7 @@ void File_Manager::copyFile(const string& source_file_path) {
     const string file_name = source_file_path.substr(source_file_path.find_last_of("\\") + 1);
     const size_t copy_number = file_copy_number(source_path, file_name);
     const string copy_path = source_path + "\\(copy - " + to_string(copy_number) + ")" + file_name ;
-    std::filesystem::copy_file(source_file_path, copy_path);
+    filesystem::copy_file(source_file_path, copy_path);
 }
 
 void File_Manager::copyFolder(const string& source_folder_path) {
@@ -51,14 +92,16 @@ void File_Manager::copyFolder(const string& source_folder_path) {
     const string folder_name = source_folder_path.substr(source_folder_path.find_last_of("\\") + 1);
     const size_t copy_number = file_copy_number(source_path, folder_name);
     const string copy_path = source_path + "\\(copy - " + to_string(copy_number) + ")" + folder_name;
-    std::filesystem::copy(source_folder_path, copy_path, std::filesystem::copy_options::recursive);
+    filesystem::copy(source_folder_path, copy_path, filesystem::copy_options::recursive);
 }
 
 size_t File_Manager::file_folder_size(const filesystem::path& path) const {
     if (filesystem::is_directory(path)) {
         size_t size_of = 0;
         for (const auto& obj : filesystem::recursive_directory_iterator(path)) {
-            size_of += file_folder_size(obj.path());
+            if (filesystem::is_regular_file(obj.path())) {
+                size_of += filesystem::file_size(obj.path());
+            }
         }
         return size_of;
     }
@@ -67,10 +110,6 @@ size_t File_Manager::file_folder_size(const filesystem::path& path) const {
     }
 }
 
-//const auto& entry : fs::recursive_directory_iterator(directoryPath)
-//fs::is_regular_file(entry.path())
-//fs::file_size(entry.path())
-//fs::is_regular_file(entry.path()) && entry.path().filename().string().find(mask) != std::string::npos
 
 void File_Manager::delete_folder(const string& folder_path) {
     try {
@@ -146,14 +185,15 @@ void File_Manager::refresh_menu() {
     menu.display();
 }
 
-bool File_Manager::show_menu() {
-    menu.load_options(current_directory);
+bool File_Manager::show_menu(bool refresh = 1) {
+    if (refresh)  menu.load_options(current_directory);
+
     menu.display();
 
     int choice_index = menu.get_choice();
     if (choice_index >= 0 && choice_index < menu.get_options().size()+2) {
         string selected_option = menu.get_options()[choice_index];
-        string selected_item_path = current_directory + "\\" + selected_option;
+        string selected_item_path = (refresh ? current_directory + "\\" + selected_option : selected_option);
 
         // Пользователь выбрал папку
         cout << "Selected folder: " << selected_option << '\n';
@@ -223,12 +263,13 @@ bool File_Manager::show_menu() {
             rename_file_folder(selected_item_path, new_FF_path + selected_item_path.substr(selected_item_path.find_last_of("\\") + 1, selected_item_path.length() - 1));
             break;
         }
-        case '6':
-            size_t FF_size;
-            FF_size=file_folder_size(selected_item_path);
+        case '6': {
+            string FF_size;
+            FF_size = convertFileSize(file_folder_size(selected_item_path));
             cout << selected_item_path.substr(selected_item_path.find_last_of("\\") + 1, selected_item_path.length() - 1) << " : " << FF_size << '\n';
             while (_getch() != 13);
             break;
+        }
         default:
             cout << "Invalid option!\n";
         }
@@ -250,6 +291,23 @@ bool File_Manager::show_menu() {
     }
     else if (choice_index == -3) {
         navigate_up();
+        return false;
+    }
+    else if (choice_index == -4) {
+        system("cls");
+        string search_line;
+        cout << "Search: ";
+        getline(cin, search_line);
+
+        vector<string> found_files_d = findFilesByMask(current_directory, search_line);
+
+        if (found_files_d.empty()) {
+            cout << "File or directory not found\n";
+        }
+        else {
+            menu.set_options(found_files_d);
+            show_menu(0);
+        }
         return false;
     }
 }

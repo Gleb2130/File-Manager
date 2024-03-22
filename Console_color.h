@@ -7,7 +7,7 @@ enum Color
 
 
 
-void text_color(int text, int background = Black)
+void text_color(int text = LightGray, int background = Black)
 {
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), (WORD)((background << 4) | text));
 	}

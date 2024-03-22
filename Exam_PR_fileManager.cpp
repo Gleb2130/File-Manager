@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <string>
 #include <conio.h>
+#include <cmath>
 using namespace std;
 
 #include "Console_color.h"
