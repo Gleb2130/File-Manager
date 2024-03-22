@@ -62,20 +62,16 @@ public:
     size_t file_folder_size(const filesystem::path&) const;
     vector<string> findFilesByMask(const filesystem::path&, const string&);
 };
-
 vector<string> File_Manager::findFilesByMask(const filesystem::path& directory, const string& mask) {
     vector<string> foundFiles;
     for (const auto& entry : filesystem::recursive_directory_iterator(directory)) {
-        if (filesystem::is_directory(entry.path())) {
-            vector<string> find_in_folder = findFilesByMask(entry.path(), mask);
-            foundFiles.insert(foundFiles.end(), find_in_folder.begin(), find_in_folder.end());
-        }
-        else if (filesystem::is_regular_file(entry.path()) && entry.path().filename().string().find(mask) != string::npos) {
+        if (filesystem::is_regular_file(entry.path()) && entry.path().filename().string().find(mask) != string::npos) {
             foundFiles.emplace_back(entry.path().string());
         }
     }
     return foundFiles;
 }
+
 
 
 
@@ -94,6 +90,7 @@ void File_Manager::copyFolder(const string& source_folder_path) {
     const string copy_path = source_path + "\\(copy - " + to_string(copy_number) + ")" + folder_name;
     filesystem::copy(source_folder_path, copy_path, filesystem::copy_options::recursive);
 }
+//TODO обеденить copyFile copyFolder ( используя filesystem::is_directory() )
 
 size_t File_Manager::file_folder_size(const filesystem::path& path) const {
     if (filesystem::is_directory(path)) {
@@ -128,6 +125,7 @@ void File_Manager::delete_file(const string& file_path) {
         cout << "File deleted successfully.\n";
     }
 }
+//TODO обеденить delete_folder delete_file ( используя filesystem::is_directory() )
 
 inline void File_Manager::rename_file_folder(const string& old_name_path, const string& new_path)
 {
@@ -195,24 +193,19 @@ bool File_Manager::show_menu(bool refresh = 1) {
         string selected_option = menu.get_options()[choice_index];
         string selected_item_path = (refresh ? current_directory + "\\" + selected_option : selected_option);
 
-        // Пользователь выбрал папку
-        cout << "Selected folder: " << selected_option << '\n';
-        cout << "Press Enter to view options..." << '\n';   
-
-        // Отображаем подменю для папки
-        system("cls");
-        cout << "Options for " << selected_option << ":" << '\n';
-        cout << "-> 1. Open" << '\n';
-        cout << "2. Rename" << '\n';
-        cout << "3. Delete" << '\n';
-        cout << "4. Copy" << '\n';
-        cout << "5. Move to" << '\n';
-        cout << "6. Size" << '\n';
-        cout << "Press Q to return to main menu" << '\n';
-
         char option = '1';
         char key;
         do {
+            system("cls");
+            cout << "Options for " << selected_option << ":" << '\n';
+            (option == '1' ? text_color(Green) : text_color()); cout << "Open" << '\n';
+            (option == '2' ? text_color(Green) : text_color()); cout << "Rename" << '\n';
+            (option == '3' ? text_color(Green) : text_color()); cout << "Delete" << '\n';
+            (option == '4' ? text_color(Green) : text_color()); cout << "Copy" << '\n';
+            (option == '5' ? text_color(Green) : text_color()); cout << "Move to" << '\n';
+            (option == '6' ? text_color(Green) : text_color()); cout << "Size" << '\n';
+            text_color();cout << "Press Q to return to main menu" << '\n';
+            
             key = _getch();
             if (key == 72 && option > '1') {
                 --option;
@@ -223,18 +216,6 @@ bool File_Manager::show_menu(bool refresh = 1) {
             else if (key == 'Q' || key == 'q') {
                 return false;
             }
-
-            system("cls");
-            cout << "Options for " << selected_option << ":" << '\n';
-            cout << (option == '1' ? "-> " : "   ") << "1. Open" << '\n';
-            cout << (option == '2' ? "-> " : "   ") << "2. Rename" << '\n';
-            cout << (option == '3' ? "-> " : "   ") << "3. Delete" << '\n';
-            cout << (option == '4' ? "-> " : "   ") << "4. Copy" << '\n';
-            cout << (option == '5' ? "-> " : "   ") << "5. Move to" << '\n';
-            cout << (option == '6' ? "-> " : "   ") << "6. Size" << '\n';
-
-
-            cout << "Press Q to return to main menu" << '\n';
         } while (key != 13);
 
         // Обработка выбора пользователя
@@ -247,7 +228,7 @@ bool File_Manager::show_menu(bool refresh = 1) {
             const string source_path = selected_item_path.substr(0, selected_item_path.find_last_of("\\"));
             cout << "Enter new name: ";
             cin >> newName;
-            rename_file_folder(selected_item_path, source_path + newName);
+            rename_file_folder(selected_item_path, source_path +'\\'+ newName);
             break;
         }
         case '3':
