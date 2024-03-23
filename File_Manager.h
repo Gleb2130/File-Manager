@@ -57,10 +57,9 @@ public:
     void open_folder(const string&);
     void delete_folder(const string&);
 
-    void copyFile(const string&);
-    void copyFolder(const string&);
     size_t file_folder_size(const filesystem::path&) const;
     vector<string> findFilesByMask(const filesystem::path&, const string&);
+    void copy_file_folder(const string&);
 };
 vector<string> File_Manager::findFilesByMask(const filesystem::path& directory, const string& mask) {
     vector<string> foundFiles;
@@ -72,25 +71,17 @@ vector<string> File_Manager::findFilesByMask(const filesystem::path& directory, 
     return foundFiles;
 }
 
-
-
-
-void File_Manager::copyFile(const string& source_file_path) {
-    const string source_path = source_file_path.substr(0, source_file_path.find_last_of("\\"));
-    const string file_name = source_file_path.substr(source_file_path.find_last_of("\\") + 1);
+void File_Manager::copy_file_folder(const string& source_FF_path) {
+    const string source_path = source_FF_path.substr(0, source_FF_path.find_last_of("\\"));
+    const string file_name = source_FF_path.substr(source_FF_path.find_last_of("\\") + 1);
     const size_t copy_number = file_copy_number(source_path, file_name);
-    const string copy_path = source_path + "\\(copy - " + to_string(copy_number) + ")" + file_name ;
-    filesystem::copy_file(source_file_path, copy_path);
-}
+    const string copy_path = source_path + "\\(copy - " + to_string(copy_number) + ")" + file_name;
 
-void File_Manager::copyFolder(const string& source_folder_path) {
-    const string source_path = source_folder_path.substr(0, source_folder_path.find_last_of("\\"));
-    const string folder_name = source_folder_path.substr(source_folder_path.find_last_of("\\") + 1);
-    const size_t copy_number = file_copy_number(source_path, folder_name);
-    const string copy_path = source_path + "\\(copy - " + to_string(copy_number) + ")" + folder_name;
-    filesystem::copy(source_folder_path, copy_path, filesystem::copy_options::recursive);
+    if (filesystem::is_directory(source_path))
+        filesystem::copy(source_FF_path, copy_path, filesystem::copy_options::recursive);
+    else
+        filesystem::copy_file(source_FF_path, copy_path);
 }
-//TODO обеденить copyFile copyFolder ( используя filesystem::is_directory() )
 
 size_t File_Manager::file_folder_size(const filesystem::path& path) const {
     if (filesystem::is_directory(path)) {
@@ -235,7 +226,8 @@ bool File_Manager::show_menu(bool refresh = 1) {
             filesystem::is_directory(selected_item_path) ? delete_folder(selected_item_path) : delete_file(selected_item_path);
             break;
         case '4':
-            filesystem::is_directory(selected_item_path) ? copyFolder(selected_item_path) : copyFile(selected_item_path);
+            //filesystem::is_directory(selected_item_path) ? copyFolder(selected_item_path) : copyFile(selected_item_path);
+            copy_file_folder(selected_item_path);
             break;
         case '5': {
             string new_FF_path;
